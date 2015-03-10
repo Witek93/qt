@@ -52,7 +52,10 @@ void SslApp::on_pressCountButton_clicked()
 
 void SslApp::logOnTextEdit(QString str)
 {
-    ui->logTextEdit->textCursor().insertText(str + "\n");
+    QTextCursor cursor = ui->logTextEdit->textCursor();
+    cursor.insertText(str + "\n");
+    cursor.movePosition(QTextCursor::End);
+    ui->logTextEdit->setTextCursor(cursor);
 }
 
 
