@@ -45,12 +45,7 @@ bool SslAppModel::serverIsListening() {
 }
 
 bool SslAppModel::connectionIsClosed() {
-    if(m_tcpSocket) {
-        if(m_tcpSocket->isOpen()) {
-            return false;
-        }
-    }
-    return true;
+    return !m_tcpSocket || !m_tcpSocket->isOpen();
 }
 
 void SslAppModel::tcpNewConnection() {
