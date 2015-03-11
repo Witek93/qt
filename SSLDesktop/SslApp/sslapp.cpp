@@ -6,7 +6,7 @@ SslApp::SslApp(QWidget *parent) :
     ui(new Ui::SslApp)
 {
     ui->setupUi(this);
-    setWindowTitle("SSL APP");
+    setWindowTitle("Tcp APP");
 
     model = new SslAppModel(this);
     connect(model, SIGNAL(message(QString)), this, SLOT(logOnTextEdit(QString)));

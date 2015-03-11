@@ -1,12 +1,15 @@
 #include "sslboxmodel.h"
 
+#include <QFile>
+#include <QSsl>
+#include <QSslKey>
+#include <QSslCertificate>
+
 SslBoxModel::SslBoxModel(QObject *parent) :
-    QObject(parent),
+    QTcpServer(parent),
     m_buttonPresses(0)
 {
     m_udpSocket = new QUdpSocket(this);
-    m_tcpServer = NULL;
-    m_tcpSocket = NULL;
 }
 
 SslBoxModel::~SslBoxModel() {}
@@ -30,60 +33,123 @@ void SslBoxModel::broadcast(QByteArray msg) {
 }
 
 bool SslBoxModel::serverIsListening() {
-    return m_tcpServer && m_tcpServer->isListening();
+    return this->isListening();
+}
+
+void SslBoxModel::initCertificate()
+{
+    QByteArray key;
+    QByteArray cert;
+    QFile file_key(":/api.xyz.com.key");
+    if(file_key.open(QIODevice::ReadOnly))
+    {
+        key = file_key.readAll();
+        file_key.close();
+    }
+    else
+    {
+
+        qDebug() << "key "  << file_key.errorString();
+    }
+
+    QFile file_cert(":/api.xyz.com.crt");
+    if(file_cert.open(QIODevice::ReadOnly))
+    {
+        cert = file_cert.readAll();
+        file_cert.close();
+    }
+    else
+    {
+        qDebug() << "csr " << file_cert.errorString();
+    }
+    QSslKey ssl_key(key,QSsl::Rsa);
+    QSslCertificate ssl_cert(cert);
+    m_sslServer->setProtocol(QSsl::SslV3);
+    m_sslServer->addCaCertificate(ssl_cert);
+    m_sslServer->setLocalCertificate(ssl_cert);
+    m_sslServer->setPrivateKey(ssl_key);
 }
 
 void SslBoxModel::startServer() {
-    m_tcpServer = new QTcpServer(this);
-    if(m_tcpServer->listen(QHostAddress::Any, 8445)) {
+
+    m_sslServer = new QSslSocket(this);
+    connect(m_sslServer,SIGNAL(stateChanged(QAbstractSocket::SocketState)),this,SLOT(stateChanged(QAbstractSocket::SocketState)));
+    initCertificate();
+    if(listen(QHostAddress::Any, 8445)) {
         emit message("SERVER: on");
     } else {
         emit message("SERVER: couldn't turn on");
     }
-    connect(m_tcpServer, SIGNAL(newConnection()), this, SLOT(tcpNewConnection()));
+
 }
 
-void SslBoxModel::tcpNewConnection() {
-    if(!m_tcpSocket) {
-        m_tcpSocket = m_tcpServer->nextPendingConnection();
-        connect(m_tcpSocket, SIGNAL(readyRead()), this, SLOT(tcpReadyRead()));
+void SslBoxModel::stateChanged(QAbstractSocket::SocketState)
+{
+    emit message("Tcp state : " + m_sslServer->state() );
+}
 
-        QHostAddress peerAddress = m_tcpSocket->peerAddress();
+void SslBoxModel::incomingConnection(qintptr handle)
+{
+    if(m_sslServer->setSocketDescriptor(handle))
+    {
+        connect(m_sslServer,SIGNAL(readyRead()), this, SLOT(sslReadyRead()));
+        connect(m_sslServer,SIGNAL(disconnected()),this,SLOT(clientDisconnected()));
+
+        QHostAddress peerAddress = m_sslServer->peerAddress();
         emit label("CONNECTED TO: " + peerAddress.toString());
-        emit message("Connected via TCP with: " + peerAddress.toString());
+        emit message("Connected via Tcp with: " + peerAddress.toString());
+    }
+    else
+    {
+        emit message("Couldn't start Tcp connection");
     }
 }
 
-void SslBoxModel::tcpReadyRead() {
-    QString tcpMessage = m_tcpSocket->readAll().data();
+//void SslBoxModel::TcpNewConnection() {
+//    if(!m_TcpSocket) {
+//        m_TcpSocket = m_TcpServer->nextPendingConnection();
+//        connect(m_TcpSocket, SIGNAL(readyRead()), this, SLOT(TcpReadyRead()));
 
-    if("COUNT" == tcpMessage.mid(0,5)) {
-        emit message("TCP: COUNT=" + tcpMessage.mid(6));
-        m_buttonPresses = tcpMessage.mid(6).toInt();
+//        QHostAddress peerAddress = m_TcpSocket->peerAddress();
+
+//    }
+//}
+
+void SslBoxModel::sslReadyRead() {
+    QString sslMessage = m_sslServer->readAll().data();
+
+    if("COUNT" == sslMessage.mid(0,5)) {
+        emit message("Tcp: COUNT=" + sslMessage.mid(6));
+        m_buttonPresses = sslMessage.mid(6).toInt();
     }
-    else if ("USER" == tcpMessage.mid(0,4)) {
-        emit message("TCP: USER=" + tcpMessage.mid(5));
+    else if ("USER" == sslMessage.mid(0,4)) {
+        emit message("Tcp: USER=" + sslMessage.mid(5));
     }
     else {
-        emit message("TCP: Not supported message");
+        emit message("Tcp: Not supported message : " + sslMessage);
     }
 }
 
 
 void SslBoxModel::pairingProcess() {
-    if(isTcpConnected()) {
+    if(isSslConnected()) {
         if(m_buttonPresses > 0) {
             m_buttonPresses--;
-            m_tcpSocket->write("BUTTON_PRESSED");
-            emit message("TCP: There is " + QString::number(m_buttonPresses) + " presses left");
+            m_sslServer->write("BUTTON_PRESSED");
+            emit message("Tcp: There is " + QString::number(m_buttonPresses) + " presses left");
         } else {
-            emit message("TCP: You should NOT press that button");
+            emit message("Tcp: You should NOT press that button");
         }
     } else {
-        emit message("TCP: Cannot send pairing msg, there is no TCP connection");
+        emit message("Tcp: Cannot send pairing msg, there is no Tcp connection");
     }
 }
 
-bool SslBoxModel::isTcpConnected() {
-    return m_tcpSocket && m_tcpSocket->state() == QTcpSocket::ConnectedState;
+bool SslBoxModel::isSslConnected() {
+    return m_sslServer &&  m_sslServer->isEncrypted();
+}
+
+void SslBoxModel::clientDisconnected()
+{
+    emit message("CLIENT DISCONNECTED");
 }

@@ -8,7 +8,7 @@ QT       += core gui network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-TARGET = SSLDesktop
+TARGET = TcpDesktop
 TEMPLATE = app
 
 
@@ -27,3 +27,6 @@ HEADERS  += \
 FORMS    += mainwindow.ui \
     SslApp/sslapp.ui \
     SslBox/sslbox.ui
+
+RESOURCES += \
+    SslBox/res.qrc

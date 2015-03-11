@@ -6,7 +6,7 @@ SslBox::SslBox(QWidget *parent) :
     ui(new Ui::SslBox)
 {
     ui->setupUi(this);
-    this->setWindowTitle("SSL BOX");
+    this->setWindowTitle("Tcp BOX");
 
     timer = new QTimer(this);
     timer->setSingleShot(true);

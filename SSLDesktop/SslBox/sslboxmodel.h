@@ -1,12 +1,12 @@
-#ifndef SSLBOXMODEL_H
-#define SSLBOXMODEL_H
+#ifndef TcpBOXMODEL_H
+#define TcpBOXMODEL_H
 
 #include <QObject>
 #include <QUdpSocket>
-#include <QTcpSocket>
+//#include <QTcpSocket>
 #include <QTcpServer>
-
-class SslBoxModel : public QObject
+#include <QSslSocket>
+class SslBoxModel : public QTcpServer
 {
     Q_OBJECT
 public:
@@ -20,27 +20,33 @@ public:
 //    void initConnection();
 //    bool isConnected();
 
+    void initCertificate();
 private:
 //    bool isTcpUnconnected();
-    bool isTcpConnected();
+    bool isSslConnected();
     void processPairing();
 
 signals:
     void message(QString msg);
     void label(QString msg);
 
+protected:
+    void incomingConnection(qintptr handle);
+
 public slots:
-    void tcpNewConnection();
-    void tcpReadyRead();
+//    void TcpNewConnection();
+    void sslReadyRead();
     void broadcastAndStartServer();
     void pairingProcess();
-
+    void clientDisconnected();
+    void stateChanged(QAbstractSocket::SocketState);
 private:
     QUdpSocket *m_udpSocket;
-    QTcpSocket *m_tcpSocket;
-    QTcpServer *m_tcpServer;
+//    QTcpSocket *m_TcpSocket;
+//    QTcpServer *m_tcpServer;
+    QSslSocket *m_sslServer;
     QHostAddress currentServerAddress;
     int m_buttonPresses;
 };
 
-#endif // SSLBOXMODEL_H
+#endif // TcpBOXMODEL_H

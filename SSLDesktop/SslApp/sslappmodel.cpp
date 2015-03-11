@@ -6,11 +6,11 @@ SslAppModel::SslAppModel(QObject *parent) :
     m_udpSocket = new QUdpSocket(this);
     connect(m_udpSocket, SIGNAL(readyRead()), this, SLOT(udpReadyRead()));
 
-    m_tcpSocket = new QTcpSocket(this);
-    connect(m_tcpSocket, SIGNAL(readyRead()), this, SLOT(readyRead()));
-    connect(m_tcpSocket, SIGNAL(connected()), this, SLOT(connected()));
-    connect(m_tcpSocket, SIGNAL(disconnected()), this, SLOT(disconnected()));
-
+    m_sslSocket = new QSslSocket(this);
+    connect(m_sslSocket, SIGNAL(readyRead()), this, SLOT(readyRead()));
+    connect(m_sslSocket, SIGNAL(encrypted()), this, SLOT(connected()));
+    connect(m_sslSocket, SIGNAL(disconnected()), this, SLOT(disconnected()));
+    connect(m_sslSocket, SIGNAL(sslErrors(QList<QSslError>)),this,SLOT(sslErrors(QList<QSslError>)));
 //    m_buttonPresses = 0;
 }
 
@@ -53,7 +53,7 @@ bool SslAppModel::isUdpUnconnected() {
 }
 
 void SslAppModel::readyRead() {
-    QString str = m_tcpSocket->readAll().data();
+    QString str = m_sslSocket->readAll().data();
     if("BUTTON_PRESSED" == str.mid(0,14)) {
         processButtonPress();
     }
@@ -65,40 +65,47 @@ void SslAppModel::readyRead() {
 void SslAppModel::processButtonPress() {
     m_buttonPresses--;
     if(0 == m_buttonPresses) {
-        emit message("TCP: Devices can be paired now");
+        emit message("Tcp: Devices can be paired now");
     }
     else if (0 < m_buttonPresses) {
-        emit message("TCP: Button has been pressed");
+        emit message("Tcp: Button has been pressed");
     }
 }
 
 void SslAppModel::connected() {
-    emit message("TCP: Connected");
+    emit message("Tcp: Connected");
 }
 
 void SslAppModel::disconnected() {
-    emit message("TCP: Disconnected");
+    emit message("Tcp: Disconnected");
 }
 
 
 void SslAppModel::sendButtonPressCount() {
-    if(m_tcpSocket && m_tcpSocket->isWritable()) {
+    if(m_sslSocket && m_sslSocket->isWritable()) {
         m_buttonPresses = qrand() % 4 + 3;
         QString count = "COUNT=" + QString::number(m_buttonPresses);
-        m_tcpSocket->write(count.toUtf8(), count.size());
+        m_sslSocket->write(count.toUtf8(), count.size());
     }
 }
 
 void SslAppModel::initConnection() {
     if(!currentServerAddress.isNull()) {
-        if(isTcpUnconnected()) {
-            m_tcpSocket->connectToHost(currentServerAddress, 8445);
+        if(isSslUnconnected()) {
+            m_sslSocket->connectToHostEncrypted(currentServerAddress.toString(), 8445);
         }
     } else {
-        emit message("TCP: There is no server to connect to!");
+        emit message("Tcp: There is no server to connect to!");
     }
 }
 
-bool SslAppModel::isTcpUnconnected() {
-    return m_tcpSocket && m_tcpSocket->state() == QTcpSocket::UnconnectedState;
+bool SslAppModel::isSslUnconnected() {
+    return m_sslSocket && m_sslSocket->state() == QSslSocket::UnconnectedState;
+}
+
+void SslAppModel::sslErrors(QList<QSslError> list)
+{
+    foreach (QSslError it, list) {
+        emit message(it.errorString());
+    }
 }

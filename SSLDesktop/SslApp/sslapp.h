@@ -1,5 +1,5 @@
-#ifndef SSLAPP_H
-#define SSLAPP_H
+#ifndef TcpAPP_H
+#define TcpAPP_H
 
 #include "sslappmodel.h"
 
@@ -30,4 +30,4 @@ private:
 
 };
 
-#endif // SSLAPP_H
+#endif // TcpAPP_H

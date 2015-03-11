@@ -1,5 +1,5 @@
-#ifndef SSLBOX_H
-#define SSLBOX_H
+#ifndef TcpBOX_H
+#define TcpBOX_H
 
 #include "sslboxmodel.h"
 
@@ -32,4 +32,4 @@ private:
 
 };
 
-#endif // SSLBOX_H
+#endif // TcpBOX_H

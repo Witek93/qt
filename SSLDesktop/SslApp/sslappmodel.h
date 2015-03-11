@@ -1,10 +1,10 @@
-#ifndef SSLAPPMODEL_H
-#define SSLAPPMODEL_H
+#ifndef TcpAPPMODEL_H
+#define TcpAPPMODEL_H
 
 #include <QObject>
 #include <QUdpSocket>
-#include <QTcpSocket>
-
+//#include <QTcpSocket>
+#include <QSslSocket>
 class SslAppModel : public QObject
 {
     Q_OBJECT
@@ -22,7 +22,7 @@ public:
 private:
     bool isUdpBound();
     bool isUdpUnconnected();
-    bool isTcpUnconnected();
+    bool isSslUnconnected();
 
 signals:
     void message(QString msg);
@@ -33,12 +33,12 @@ public slots:
     void readyRead();
     void connected();
     void disconnected();
-
+    void sslErrors(QList<QSslError> list);
 private:
     QUdpSocket *m_udpSocket;
     QHostAddress currentServerAddress;
-    QTcpSocket *m_tcpSocket;
+    QSslSocket*m_sslSocket;
     int m_buttonPresses;
 };
 
-#endif // SSLAPPMODEL_H
+#endif // TcpAPPMODEL_H
