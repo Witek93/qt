@@ -35,23 +35,9 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout">
           <item>
-           <widget class="QPushButton" name="udpListeningButton">
+           <widget class="QPushButton" name="topButton">
             <property name="text">
-             <string>startListening</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="initTcpButton">
-            <property name="text">
-             <string>initTCP</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pairButton">
-            <property name="text">
-             <string>pairButton</string>
+             <string>TOP BUTTON</string>
             </property>
            </widget>
           </item>

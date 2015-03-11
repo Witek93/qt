@@ -1,9 +1,9 @@
 #ifndef SSLAPP_H
 #define SSLAPP_H
 
-#include <QMainWindow>
-
 #include "sslappmodel.h"
+
+#include <QMainWindow>
 
 namespace Ui {
 class SslApp;
@@ -18,12 +18,11 @@ public:
     ~SslApp();
 
 private slots:
+    void on_listenButton_clicked();
+    void on_sendPressCountButton_clicked();
+
     void logOnTextEdit(QString str);
     void setLabel(QString str);
-
-    void on_startBrodcastButton_clicked();
-    void on_closeConnectionButton_clicked();
-    void on_pressCountButton_clicked();
 
 private:
     Ui::SslApp *ui;

@@ -41,23 +41,16 @@
           <item>
            <layout class="QVBoxLayout" name="verticalLayout">
             <item>
-             <widget class="QPushButton" name="startBrodcastButton">
+             <widget class="QPushButton" name="listenButton">
               <property name="text">
-               <string>broadcast msg</string>
+               <string>LISTEN</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pressCountButton">
+             <widget class="QPushButton" name="sendPressCountButton">
               <property name="text">
-               <string>send press count</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="closeConnectionButton">
-              <property name="text">
-               <string>close connection</string>
+               <string>SEND PRESS COUNT</string>
               </property>
              </widget>
             </item>

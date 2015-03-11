@@ -1,7 +1,7 @@
 #include <QApplication>
 
-#include "sslapp.h"
-#include "sslbox.h"
+#include "SslApp/sslapp.h"
+#include "SslBox/sslbox.h"
 
 int main(int argc, char *argv[])
 {

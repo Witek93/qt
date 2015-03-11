@@ -13,13 +13,17 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-    sslapp.cpp \
-    sslbox.cpp
+    SslApp/sslapp.cpp \
+    SslBox/sslbox.cpp \
+    SslApp/sslappmodel.cpp \
+    SslBox/sslboxmodel.cpp
 
 HEADERS  += \
-    sslapp.h \
-    sslbox.h
+    SslApp/sslapp.h \
+    SslBox/sslbox.h \
+    SslApp/sslappmodel.h \
+    SslBox/sslboxmodel.h
 
 FORMS    += mainwindow.ui \
-    sslapp.ui \
-    sslbox.ui
+    SslApp/sslapp.ui \
+    SslBox/sslbox.ui

@@ -5,42 +5,56 @@ SslBoxModel::SslBoxModel(QObject *parent) :
     m_buttonPresses(0)
 {
     m_udpSocket = new QUdpSocket(this);
-    connect(m_udpSocket, SIGNAL(readyRead()), this, SLOT(udpReadyRead()));
-
-    m_tcpSocket = new QTcpSocket(this);
-    connect(m_tcpSocket, SIGNAL(connected()), this, SLOT(connected()));
-    connect(m_tcpSocket, SIGNAL(disconnected()), this, SLOT(disconnected()));
-    connect(m_tcpSocket, SIGNAL(readyRead()), this, SLOT(readyRead()));
+    m_tcpServer = NULL;
+    m_tcpSocket = NULL;
 }
-
 
 SslBoxModel::~SslBoxModel() {}
 
 
-void SslBoxModel::udpReadyRead() {
-    while(m_udpSocket->hasPendingDatagrams()) {
-        QByteArray data;
-        data.resize(m_udpSocket->pendingDatagramSize());
+void SslBoxModel::broadcastAndStartServer() {
+    broadcast("INIT");
+    emit message("UDP: Broadcast");
 
-        m_udpSocket->readDatagram(data.data(), data.size(), &currentServerAddress);
-
-        emit message("UDP: Got msg from " + currentServerAddress.toString());
-        emit label("SERVER: " + currentServerAddress.toString());
+    if(!serverIsListening()) {
+        startServer();
+    } else {
+        emit message("SERVER: already turned on");
     }
 }
 
-
-void SslBoxModel::connected() {
-    emit message("TCP: Connected");
+void SslBoxModel::broadcast(QByteArray msg) {
+    if(m_udpSocket) {
+        m_udpSocket->writeDatagram(msg, msg.size(), QHostAddress::Broadcast, 8445);
+    }
 }
 
-
-void SslBoxModel::disconnected() {
-    emit message("TCP: Disconnected");
+bool SslBoxModel::serverIsListening() {
+    return m_tcpServer && m_tcpServer->isListening();
 }
 
+void SslBoxModel::startServer() {
+    m_tcpServer = new QTcpServer(this);
+    if(m_tcpServer->listen(QHostAddress::Any, 8445)) {
+        emit message("SERVER: on");
+    } else {
+        emit message("SERVER: couldn't turn on");
+    }
+    connect(m_tcpServer, SIGNAL(newConnection()), this, SLOT(tcpNewConnection()));
+}
 
-void SslBoxModel::readyRead() {
+void SslBoxModel::tcpNewConnection() {
+    if(!m_tcpSocket) {
+        m_tcpSocket = m_tcpServer->nextPendingConnection();
+        connect(m_tcpSocket, SIGNAL(readyRead()), this, SLOT(tcpReadyRead()));
+
+        QHostAddress peerAddress = m_tcpSocket->peerAddress();
+        emit label("CONNECTED TO: " + peerAddress.toString());
+        emit message("Connected via TCP with: " + peerAddress.toString());
+    }
+}
+
+void SslBoxModel::tcpReadyRead() {
     QString tcpMessage = m_tcpSocket->readAll().data();
 
     if("COUNT" == tcpMessage.mid(0,5)) {
@@ -56,46 +70,15 @@ void SslBoxModel::readyRead() {
 }
 
 
-
-void SslBoxModel::listen() {
-    if(isUdpUnconnected()) {
-        emit message("UDP: Binding connection...");
-        m_udpSocket->bind(8445, QUdpSocket::ShareAddress);
-    }
-    else if(isUdpBound()) {
-        emit message("UDP: Already bound");
-    } else {
-        emit message("UDP: Connection cannot be bound");
-    }
-}
-
-bool SslBoxModel::isUdpBound() {
-    return m_udpSocket && m_udpSocket->state() == QUdpSocket::BoundState;
-}
-
-bool SslBoxModel::isUdpUnconnected() {
-    return m_udpSocket && m_udpSocket->state() == QUdpSocket::UnconnectedState;
-}
-
-
-void SslBoxModel::initConnection() {
-    if(!currentServerAddress.isNull()) {
-        if(isTcpUnconnected()) {
-            m_tcpSocket->connectToHost(currentServerAddress, 8445);
-        }
-    } else {
-        emit message("TCP: There is no server to connect to!");
-    }
-}
-
-bool SslBoxModel::isTcpUnconnected() {
-    return m_tcpSocket && m_tcpSocket->state() == QTcpSocket::UnconnectedState;
-}
-
-
-void SslBoxModel::sendPairingMessage() {
+void SslBoxModel::pairingProcess() {
     if(isTcpConnected()) {
-        processPairingPress();
+        if(m_buttonPresses > 0) {
+            m_buttonPresses--;
+            m_tcpSocket->write("BUTTON_PRESSED");
+            emit message("TCP: There is " + QString::number(m_buttonPresses) + " presses left");
+        } else {
+            emit message("TCP: You should NOT press that button");
+        }
     } else {
         emit message("TCP: Cannot send pairing msg, there is no TCP connection");
     }
@@ -103,14 +86,4 @@ void SslBoxModel::sendPairingMessage() {
 
 bool SslBoxModel::isTcpConnected() {
     return m_tcpSocket && m_tcpSocket->state() == QTcpSocket::ConnectedState;
-}
-
-void SslBoxModel::processPairingPress() {
-    if(m_buttonPresses > 0) {
-        m_buttonPresses--;
-        m_tcpSocket->write("BUTTON_PRESSED");
-        emit message("TCP: There is " + QString::number(m_buttonPresses) + " presses left");
-    } else {
-        emit message("TCP: You should NOT press that button");
-    }
 }

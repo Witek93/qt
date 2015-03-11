@@ -4,12 +4,14 @@ SslAppModel::SslAppModel(QObject *parent) :
     QObject(parent)
 {
     m_udpSocket = new QUdpSocket(this);
+    connect(m_udpSocket, SIGNAL(readyRead()), this, SLOT(udpReadyRead()));
 
-    m_tcpServer = new QTcpServer(this);
-    connect(m_tcpServer, SIGNAL(newConnection()), this, SLOT(tcpNewConnection()));
+    m_tcpSocket = new QTcpSocket(this);
+    connect(m_tcpSocket, SIGNAL(readyRead()), this, SLOT(readyRead()));
+    connect(m_tcpSocket, SIGNAL(connected()), this, SLOT(connected()));
+    connect(m_tcpSocket, SIGNAL(disconnected()), this, SLOT(disconnected()));
 
-    m_tcpSocket = NULL;
-    m_buttonPresses = 0;
+//    m_buttonPresses = 0;
 }
 
 SslAppModel::~SslAppModel()
@@ -17,63 +19,86 @@ SslAppModel::~SslAppModel()
 }
 
 
-void SslAppModel::startBroadcast(QByteArray msg) {
-    m_udpSocket->writeDatagram(msg, msg.size(), QHostAddress::Broadcast, 8445);
-}
+void SslAppModel::udpReadyRead() {
+    while(m_udpSocket->hasPendingDatagrams()) {
+        QByteArray data;
+        data.resize(m_udpSocket->pendingDatagramSize());
 
-void SslAppModel::sendButtonPressCount() {
-    if(m_tcpSocket) {
-        m_buttonPresses = qrand() % 4 + 3;
-        QString count = "COUNT=" + QString::number(m_buttonPresses);
-        m_tcpSocket->write(count.toUtf8(), count.size());
-        m_tcpSocket->flush();
-        m_tcpSocket->waitForBytesWritten(1000);
+        m_udpSocket->readDatagram(data.data(), data.size(), &currentServerAddress);
+
+        emit message("UDP: Got msg from " + currentServerAddress.toString());
+        emit label("SERVER: " + currentServerAddress.toString());
+        initConnection();
     }
 }
 
-
-void SslAppModel::closeConnection() {
-    if(m_tcpSocket) {
-        m_tcpSocket->close();
-        m_tcpSocket = NULL;
+void SslAppModel::listen() {
+    if(isUdpUnconnected()) {
+        emit message("UDP: Binding connection...");
+        m_udpSocket->bind(8445, QUdpSocket::ShareAddress);
+    }
+    else if(isUdpBound()) {
+        emit message("UDP: Already bound");
+    } else {
+        emit message("UDP: Connection cannot be bound");
     }
 }
 
-
-bool SslAppModel::serverIsListening() {
-    return m_tcpServer->listen(QHostAddress::Any, 8445);
+bool SslAppModel::isUdpBound() {
+    return m_udpSocket && m_udpSocket->state() == QUdpSocket::BoundState;
 }
 
-bool SslAppModel::connectionIsClosed() {
-    return !m_tcpSocket || !m_tcpSocket->isOpen();
-}
-
-void SslAppModel::tcpNewConnection() {
-    if(!m_tcpSocket) {
-        m_tcpSocket = m_tcpServer->nextPendingConnection();
-        connect(m_tcpSocket, SIGNAL(readyRead()), this, SLOT(readyRead()));
-
-        QHostAddress peerAddress = m_tcpSocket->peerAddress();
-        emit label("CONNECTED TO" + peerAddress.toString());
-        emit message("Connected via TCP with: " + peerAddress.toString());
-    }
+bool SslAppModel::isUdpUnconnected() {
+    return m_udpSocket && m_udpSocket->state() == QUdpSocket::UnconnectedState;
 }
 
 void SslAppModel::readyRead() {
     QString str = m_tcpSocket->readAll().data();
     if("BUTTON_PRESSED" == str.mid(0,14)) {
-        m_buttonPresses--;
-        if(0 == m_buttonPresses) {
-            emit message("TCP: Devices can be paired now");
-        }
-        else if (0 < m_buttonPresses) {
-            emit message("TCP: Button has been pressed");
-        }
-        else {
-            emit message("TCP: You should not get here...");
-        }
+        processButtonPress();
     }
     else {
         emit message("Not supported msg: " + str);
     }
+}
+
+void SslAppModel::processButtonPress() {
+    m_buttonPresses--;
+    if(0 == m_buttonPresses) {
+        emit message("TCP: Devices can be paired now");
+    }
+    else if (0 < m_buttonPresses) {
+        emit message("TCP: Button has been pressed");
+    }
+}
+
+void SslAppModel::connected() {
+    emit message("TCP: Connected");
+}
+
+void SslAppModel::disconnected() {
+    emit message("TCP: Disconnected");
+}
+
+
+void SslAppModel::sendButtonPressCount() {
+    if(m_tcpSocket && m_tcpSocket->isWritable()) {
+        m_buttonPresses = qrand() % 4 + 3;
+        QString count = "COUNT=" + QString::number(m_buttonPresses);
+        m_tcpSocket->write(count.toUtf8(), count.size());
+    }
+}
+
+void SslAppModel::initConnection() {
+    if(!currentServerAddress.isNull()) {
+        if(isTcpUnconnected()) {
+            m_tcpSocket->connectToHost(currentServerAddress, 8445);
+        }
+    } else {
+        emit message("TCP: There is no server to connect to!");
+    }
+}
+
+bool SslAppModel::isTcpUnconnected() {
+    return m_tcpSocket && m_tcpSocket->state() == QTcpSocket::UnconnectedState;
 }

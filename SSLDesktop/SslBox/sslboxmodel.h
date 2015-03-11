@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QUdpSocket>
 #include <QTcpSocket>
+#include <QTcpServer>
 
 class SslBoxModel : public QObject
 {
@@ -12,32 +13,32 @@ public:
     explicit SslBoxModel(QObject *parent = 0);
     ~SslBoxModel();
 
-    void listen();
-    void initConnection();
-    void sendPairingMessage();
-    bool isConnected();
+    void broadcast(QByteArray msg);
+    void startServer();
+    bool serverIsListening();
+
+//    void initConnection();
+//    bool isConnected();
 
 private:
-    bool isTcpUnconnected();
+//    bool isTcpUnconnected();
     bool isTcpConnected();
-    void processPairingPress();
-    bool isUdpBound();
-    bool isUdpUnconnected();
+    void processPairing();
 
 signals:
     void message(QString msg);
     void label(QString msg);
 
 public slots:
-    void udpReadyRead();
-
-    void connected();
-    void disconnected();
-    void readyRead();
+    void tcpNewConnection();
+    void tcpReadyRead();
+    void broadcastAndStartServer();
+    void pairingProcess();
 
 private:
     QUdpSocket *m_udpSocket;
     QTcpSocket *m_tcpSocket;
+    QTcpServer *m_tcpServer;
     QHostAddress currentServerAddress;
     int m_buttonPresses;
 };

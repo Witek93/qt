@@ -3,7 +3,6 @@
 
 #include <QObject>
 #include <QUdpSocket>
-#include <QTcpServer>
 #include <QTcpSocket>
 
 class SslAppModel : public QObject
@@ -13,23 +12,31 @@ public:
     explicit SslAppModel(QObject *parent = 0);
     ~SslAppModel();
 
-    void startBroadcast(QByteArray msg);
+    void listen();
+    void processButtonPress();
     void sendButtonPressCount();
-    void closeConnection();
-    bool serverIsListening();
-    bool connectionIsClosed();
+    void initConnection();
+//    void closeConnection();
+//    bool connectionIsClosed();
+
+private:
+    bool isUdpBound();
+    bool isUdpUnconnected();
+    bool isTcpUnconnected();
 
 signals:
     void message(QString msg);
     void label(QString msg);
 
 public slots:
-    void tcpNewConnection();
+    void udpReadyRead();
     void readyRead();
+    void connected();
+    void disconnected();
 
 private:
     QUdpSocket *m_udpSocket;
-    QTcpServer *m_tcpServer;
+    QHostAddress currentServerAddress;
     QTcpSocket *m_tcpSocket;
     int m_buttonPresses;
 };

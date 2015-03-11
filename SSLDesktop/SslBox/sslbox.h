@@ -1,11 +1,10 @@
 #ifndef SSLBOX_H
 #define SSLBOX_H
 
-#include <QMainWindow>
-#include <QTcpSocket>
-#include <QUdpSocket>
-
 #include "sslboxmodel.h"
+
+#include <QMainWindow>
+#include <QTimer>
 
 namespace Ui {
 class SslBox;
@@ -19,11 +18,9 @@ public:
     explicit SslBox(QWidget *parent = 0);
     ~SslBox();
 
-
 private slots:
-    void on_udpListeningButton_clicked();
-    void on_initTcpButton_clicked();
-    void on_pairButton_clicked();
+    void on_topButton_pressed();
+    void on_topButton_released();
 
     void logOnTextEdit(QString str);
     void setLabel(QString str);
@@ -31,6 +28,8 @@ private slots:
 private:
     Ui::SslBox *ui;
     SslBoxModel *model;
+    QTimer *timer;
+
 };
 
 #endif // SSLBOX_H
