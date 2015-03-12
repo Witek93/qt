@@ -35,11 +35,13 @@ protected:
 
 public slots:
 //    void TcpNewConnection();
+    void encrypted();
     void sslReadyRead();
     void broadcastAndStartServer();
     void pairingProcess();
     void clientDisconnected();
     void stateChanged(QAbstractSocket::SocketState);
+    void sslErrors(QList<QSslError> list);
 private:
     QUdpSocket *m_udpSocket;
 //    QTcpSocket *m_TcpSocket;

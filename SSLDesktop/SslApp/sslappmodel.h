@@ -23,7 +23,7 @@ private:
     bool isUdpBound();
     bool isUdpUnconnected();
     bool isSslUnconnected();
-
+    void initCertificate();
 signals:
     void message(QString msg);
     void label(QString msg);
@@ -33,6 +33,7 @@ public slots:
     void readyRead();
     void connected();
     void disconnected();
+    void encrypted();
     void sslErrors(QList<QSslError> list);
 private:
     QUdpSocket *m_udpSocket;

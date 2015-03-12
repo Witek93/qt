@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/">
-        <file>api.xyz.com.key</file>
-        <file>api.xyz.com.crt</file>
+        <file>server.key</file>
+        <file>server.cert</file>
     </qresource>
 </RCC>
